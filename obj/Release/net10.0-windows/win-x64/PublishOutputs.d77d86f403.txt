@@ -1,0 +1,2 @@
+E:\StrikeMultiPadEditor\publish\StrikeMultiPadEditor.pdb
+E:\StrikeMultiPadEditor\publish\StrikeMultiPadEditor.exe

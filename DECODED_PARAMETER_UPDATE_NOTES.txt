@@ -1,0 +1,53 @@
+STRIKE MULTIPAD EDITOR - PARAMETER DECODER UPDATE
+=================================================
+
+This source update adds direct parsing of the KITI position parameter table
+and the two layer parameter tables.
+
+Binary structure:
+- KITI position parameter table: KITI + 0x28, 22 entries x 4 bytes.
+- Layer parameter table: Layer + 0x08, 22 entries x 4 bytes.
+- Each entry is retained as ID, value, metadata byte 1, metadata byte 2.
+- ID FF marks unused entries in the examined backup records.
+- Metadata bytes are preserved verbatim. The decoder does NOT assume that
+  every metadata pair represents a minimum and maximum.
+
+Named interpretations are deliberately qualified:
+- KITI 00: Kit volume candidate.
+- KITI 02: Pan candidate.
+- KITI 08: MIDI note.
+- KITI 10: Fixed Level candidate.
+- KITI 11: Sensitivity candidate.
+- KITI 12: Threshold candidate.
+- KITI 16: Kit FX Level candidate.
+- Layer 00: Layer volume candidate.
+- Layer 02: Pan candidate.
+- Layer 09: Velocity curve candidate; codes 0..5 are displayed as
+  Normal, Exp1, Exp2, Log1, Log2, Loud.
+
+The names for controls other than MIDI note are working identifications
+from observed byte ranges/defaults and manual terminology, not proof that
+every firmware version stores the control identically. Confirm against a
+hardware read/write test before enabling editing or writing changed values.
+
+The Copy All Layer Data diagnostic now includes:
+- Parent KITI parameter entries
+- Layer parameter entries
+- Sample reference and velocity boundaries
+- Auxiliary bytes +04..+07
+- Complete raw layer block
+
+The misleading old display of layer byte +09 as a standalone field was
+removed. Layer +09 is the value byte of parameter ID 00. The actual layer
+parameter ID 09 begins at Layer +0x10.
+
+Existing buttons and handlers are retained, including:
+- COPY ALL LAYER DATA
+- COPY SAMPLE REFERENCE SCAN
+- COPY SAMPLE REFERENCE RESULTS
+- EXPORT ANALYSIS PACKAGE
+
+Build note:
+This update has not been compiled in this environment because the .NET
+SDK executable is unavailable here. Build on Windows using the included
+Build-StrikeEditor.bat script and the project's .NET 10 Windows target.

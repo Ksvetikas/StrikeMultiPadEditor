@@ -1,0 +1,170 @@
+STRIKE MULTIPAD COMBINED LAYER REFERENCE -> SAMPLE NAME LOOKUP
+Backup: Backup005.bkf
+References are collected from assigned candidate layer blocks in all kit records.
+Priority: layer metadata first; factory translation table only as fallback.
+
+DISTINCT ASSIGNED REFERENCES: 17
+RESOLVED FROM LAYER METADATA: 15
+RESOLVED FROM FACTORY FALLBACK: 2
+UNRESOLVED: 0
+CROSS-TABLE NAME CONFLICTS: 2
+
+REFERENCE | CHOSEN SAMPLE NAME | SOURCE | LAYER METADATA NAME | FACTORY TABLE NAME
+------------------------------------------------------------------------------------------------
+01 B3 | FunkHH HardClsd 4 | Layer metadata | FunkHH HardClsd 4 | —
+  Layer metadata record offset: 0x0013E291
+01 BF | FunkHH SoftClsd 4 | Layer metadata | FunkHH SoftClsd 4 | —
+  Layer metadata record offset: 0x0013E951
+01 F4 | HHZ1 14OT a | Layer metadata | HHZ1 14OT a | —
+  Layer metadata record offset: 0x0015CDA1
+03 73 | Maple22 a | Layer metadata | Maple22 a | —
+  Layer metadata record offset: 0x00174DD1
+03 74 | Maple22 b | Layer metadata | Maple22 b | —
+  Layer metadata record offset: 0x00174E61
+19 34 | OrchSn Head a | Layer metadata | OrchSn Head a | —
+  Layer metadata record offset: 0x00185AB1
+1A CD | Zild20ZCustom Bell b | Layer metadata | Zild20ZCustom Bell b | —
+  Layer metadata record offset: 0x001F1AB1
+1A D1 | Zild21KCustom Bow b | Layer metadata | Zild21KCustom Bow b | —
+  Layer metadata record offset: 0x001F1CF1
+1A E6 | BigBen | Layer metadata | BigBen | —
+  Layer metadata record offset: 0x000F6EF1
+1B DE | Brass14 2XStick b | Layer metadata | Brass14 2XStick b | —
+  Layer metadata record offset: 0x00101601
+1B E0 | Brass14Head b | Layer metadata | Brass14Head b | —
+  Layer metadata record offset: 0x00101721
+1B E2 | Brass14RimShot b | Layer metadata | Brass14RimShot b | —
+  Layer metadata record offset: 0x00101841
+1E DF | Bongo Small _02 | Layer metadata | Bongo Small _02 | —
+  Layer metadata record offset: 0x000FB301
+1F 77 | Verse | Layer metadata | Verse | 13Fuse QT 4b
+  Layer metadata record offset: 0x001E2B11
+  Factory index: 0x2E (46); translation: 0x000BED50; name record: 0x000D8CE0
+  NOTE: Both tables contain this two-byte value but give different names. Layer metadata is retained as the selected name; the factory result is shown for diagnosis.
+1F 83 | 17 TimpF#1 b | Factory fallback | — | 17 TimpF#1 b
+  Factory index: 0x3F (63); translation: 0x000BEDD8; name record: 0x000D9670
+1F 8B | TRAIMO~1 | Layer metadata | TRAIMO~1 | 70sProgSnare Head b
+  Layer metadata record offset: 0x001DB971
+  Factory index: 0x48 (72); translation: 0x000BEE20; name record: 0x000D9B80
+  NOTE: Both tables contain this two-byte value but give different names. Layer metadata is retained as the selected name; the factory result is shown for diagnosis.
+1F 9C | 808Low | Factory fallback | — | 808Low
+  Factory index: 0x5C (92); translation: 0x000BEEC0; name record: 0x000DA6C0
+
+FACTORY TRANSLATION TABLE
+-------------------------
+STRIKE MULTIPAD KITI REFERENCE -> FACTORY SAMPLE NAME
+Backup: Backup005.bkf
+Lookup chain:
+KITI reference -> 8-byte translation entry -> 50xx index -> wave_list_sort_name.lst record
+
+Decoded translation entries with names: 99
+
+KITI REF | SAMPLE INDEX | FACTORY SAMPLE NAME | TRANSLATION OFFSET | NAME RECORD OFFSET
+------------------------------------------------------------------------------------------
+1F 3F | 0x00 (0) | 01 TimpD1 a | 0x000BEBE0 | 0x000D7300
+1F 40 | 0x01 (1) | 01 TimpD1 b | 0x000BEBE8 | 0x000D7390
+1F 41 | 0x02 (2) | 02 TimpD#1 a | 0x000BEBF0 | 0x000D7420
+1F 42 | 0x03 (3) | 02 TimpD#1 b | 0x000BEBF8 | 0x000D74B0
+1F 43 | 0x04 (4) | 03 TimpE1 a | 0x000BEC00 | 0x000D7540
+1F 44 | 0x05 (5) | 03 TimpE1 b | 0x000BEC08 | 0x000D75D0
+1F 45 | 0x06 (6) | 04 TimpF1 a | 0x000BEC10 | 0x000D7660
+1F 46 | 0x07 (7) | 04 TimpF1 b | 0x000BEC18 | 0x000D76F0
+1F 47 | 0x08 (8) | 05 TimpF#1 a | 0x000BEC20 | 0x000D7780
+1F 48 | 0x09 (9) | 05 TimpF#1 b | 0x000BEC28 | 0x000D7810
+1F 49 | 0x0A (10) | 06 TimpG1 a | 0x000BEC30 | 0x000D78A0
+1F 4A | 0x0B (11) | 06 TimpG1 b | 0x000BEC38 | 0x000D7930
+1F 4B | 0x0C (12) | 07 TimpG#1 a | 0x000BEC40 | 0x000D79C0
+1F 4C | 0x0D (13) | 07 TimpG#1 b | 0x000BEC48 | 0x000D7A50
+1F 4D | 0x0E (14) | 08 TimpA1 a | 0x000BEC50 | 0x000D7AE0
+1F 4E | 0x0F (15) | 08 TimpA1 b | 0x000BEC58 | 0x000D7B70
+1F 4F | 0x10 (16) | 09 TimpA#1 a | 0x000BEC60 | 0x000D7C00
+1F 50 | 0x11 (17) | 09 TimpA#1 b | 0x000BEC68 | 0x000D7C90
+1F 51 | 0x12 (18) | 10 TimpB1 a | 0x000BEC70 | 0x000D7D20
+1F 52 | 0x13 (19) | 10 TimpB1 b | 0x000BEC78 | 0x000D7DB0
+1F 53 | 0x14 (20) | 11 TimpC2 a | 0x000BEC80 | 0x000D7E40
+1F 54 | 0x15 (21) | 11 TimpC2 b | 0x000BEC88 | 0x000D7ED0
+1F 55 | 0x16 (22) | 12 TimpC#2 a | 0x000BEC90 | 0x000D7F60
+1F 56 | 0x17 (23) | 12 TimpC#2b | 0x000BEC98 | 0x000D7FF0
+1F 57 | 0x18 (24) | 13 TimpD2 a | 0x000BECA0 | 0x000D8080
+1F 58 | 0x19 (25) | 13 TimpD2 b | 0x000BECA8 | 0x000D8110
+1F 59 | 0x1A (26) | 13Fuse 3QS 3b | 0x000BECB0 | 0x000D81A0
+1F 5A | 0x1B (27) | 13Fuse 3QS 4b | 0x000BECB8 | 0x000D8230
+1F 5B | 0x1C (28) | 13Fuse 3QT 3b | 0x000BECC0 | 0x000D82C0
+1F 5C | 0x1D (29) | 13Fuse 3QT 4b | 0x000BECC8 | 0x000D8350
+1F 5D | 0x1E (30) | 13Fuse CS 3b | 0x000BECD0 | 0x000D83E0
+1F 5E | 0x1F (31) | 13Fuse CS 4b | 0x000BECD8 | 0x000D8470
+1F 5F | 0x20 (32) | 13Fuse CT 3b | 0x000BECE0 | 0x000D8500
+1F 60 | 0x21 (33) | 13Fuse CT 4b | 0x000BECE8 | 0x000D8590
+1F 61 | 0x22 (34) | 13Fuse HS 3b | 0x000BECF0 | 0x000D8620
+1F 62 | 0x23 (35) | 13Fuse HS 4b | 0x000BECF8 | 0x000D86B0
+1F 63 | 0x24 (36) | 13Fuse HT 3b | 0x000BED00 | 0x000D8740
+1F 64 | 0x25 (37) | 13Fuse HT 4b | 0x000BED08 | 0x000D87D0
+1F 65 | 0x26 (38) | 13Fuse OS 3b | 0x000BED10 | 0x000D8860
+1F 66 | 0x27 (39) | 13Fuse OS 4b | 0x000BED18 | 0x000D88F0
+1F 71 | 0x28 (40) | 13Fuse OT 3b | 0x000BED20 | 0x000D8980
+1F 72 | 0x29 (41) | 13Fuse OT 4b | 0x000BED28 | 0x000D8A10
+1F 73 | 0x2A (42) | 13Fuse Ped 1 | 0x000BED30 | 0x000D8AA0
+1F 74 | 0x2B (43) | 13Fuse QS 3b | 0x000BED38 | 0x000D8B30
+1F 75 | 0x2C (44) | 13Fuse QS 4b | 0x000BED40 | 0x000D8BC0
+1F 76 | 0x2D (45) | 13Fuse QT 3b | 0x000BED48 | 0x000D8C50
+1F 77 | 0x2E (46) | 13Fuse QT 4b | 0x000BED50 | 0x000D8CE0
+1F 78 | 0x2F (47) | 14 TimpD#2 a | 0x000BED58 | 0x000D8D70
+1F 67 | 0x30 (48) | 14 TimpD#2 b | 0x000BED60 | 0x000D8E00
+1F 79 | 0x31 (49) | 15 TimpE2 a | 0x000BED68 | 0x000D8E90
+1F 68 | 0x32 (50) | 15 TimpE2 b | 0x000BED70 | 0x000D8F20
+1F 7A | 0x33 (51) | 16 TimpF1 a | 0x000BED78 | 0x000D8FB0
+1F 7B | 0x34 (52) | 16 TimpF1 b | 0x000BED80 | 0x000D9040
+1F 69 | 0x35 (53) | 16th HH ShakerV2 080bpm | 0x000BED88 | 0x000D90D0
+1F 6A | 0x36 (54) | 16th HH ShakerV2 085bpm | 0x000BED90 | 0x000D9160
+1F 6B | 0x37 (55) | 16th HH ShakerV2 090bpm | 0x000BED98 | 0x000D91F0
+1F 7C | 0x38 (56) | 16th HH ShakerV2 095bpm | 0x000BEDA0 | 0x000D9280
+1F 7D | 0x39 (57) | 16th HH ShakerV2 100bpm | 0x000BEDA8 | 0x000D9310
+1F 7E | 0x3A (58) | 16th HH ShakerV2 115bpm | 0x000BEDB0 | 0x000D93A0
+1F 7F | 0x3B (59) | 16th HH ShakerV2 120bpm | 0x000BEDB8 | 0x000D9430
+1F 80 | 0x3C (60) | 16th HH ShakerV2 125bpm | 0x000BEDC0 | 0x000D94C0
+1F 81 | 0x3D (61) | 16th HH ShakerV2 130bpm | 0x000BEDC8 | 0x000D9550
+1F 82 | 0x3E (62) | 17 TimpF#1 a | 0x000BEDD0 | 0x000D95E0
+1F 83 | 0x3F (63) | 17 TimpF#1 b | 0x000BEDD8 | 0x000D9670
+1F 84 | 0x40 (64) | 17KDBrush 4a | 0x000BEDE0 | 0x000D9700
+1F 85 | 0x41 (65) | 17KDBrush 4b | 0x000BEDE8 | 0x000D9790
+1F 86 | 0x42 (66) | 18 TimpG1 a | 0x000BEDF0 | 0x000D9820
+1F 87 | 0x43 (67) | 18 TimpG1 b | 0x000BEDF8 | 0x000D98B0
+1F 88 | 0x44 (68) | 26 RKing a | 0x000BEE00 | 0x000D9940
+1F 89 | 0x45 (69) | 26 RKing b | 0x000BEE08 | 0x000D99D0
+1F 6C | 0x46 (70) | 3osclead Synth | 0x000BEE10 | 0x000D9A60
+1F 8A | 0x47 (71) | 70sProgSnare Head a | 0x000BEE18 | 0x000D9AF0
+1F 8B | 0x48 (72) | 70sProgSnare Head b | 0x000BEE20 | 0x000D9B80
+1F 6D | 0x49 (73) | 70sProgSnare Rimshot a | 0x000BEE28 | 0x000D9C10
+1F 6E | 0x4A (74) | 70sProgSnare Rimshot b | 0x000BEE30 | 0x000D9CA0
+1F 6F | 0x4B (75) | 78Conga | 0x000BEE38 | 0x000D9D30
+1F 8C | 0x4C (76) | 78HH Closed | 0x000BEE40 | 0x000D9DC0
+1F 8D | 0x4D (77) | 78HH Open | 0x000BEE48 | 0x000D9E50
+1F 8E | 0x4E (78) | 78HH Pedal | 0x000BEE50 | 0x000D9EE0
+1F 8F | 0x4F (79) | 78Kick | 0x000BEE58 | 0x000D9F70
+1F 90 | 0x50 (80) | 808 Hi Tom | 0x000BEE60 | 0x000DA000
+1F 91 | 0x51 (81) | 808 Lo Tom | 0x000BEE68 | 0x000DA090
+1F 92 | 0x52 (82) | 808 Md Tom | 0x000BEE70 | 0x000DA120
+1F 93 | 0x53 (83) | 808Clave | 0x000BEE78 | 0x000DA1B0
+1F 94 | 0x54 (84) | 808Cowbell | 0x000BEE80 | 0x000DA240
+1F 95 | 0x55 (85) | 808Cym High | 0x000BEE88 | 0x000DA2D0
+1F 96 | 0x56 (86) | 808HH Closed | 0x000BEE90 | 0x000DA360
+1F 97 | 0x57 (87) | 808HH Open | 0x000BEE98 | 0x000DA3F0
+1F 98 | 0x58 (88) | 808HH Pedal | 0x000BEEA0 | 0x000DA480
+1F 99 | 0x59 (89) | 808High | 0x000BEEA8 | 0x000DA510
+1F 9A | 0x5A (90) | 808HighConga | 0x000BEEB0 | 0x000DA5A0
+1F 9B | 0x5B (91) | 808Long | 0x000BEEB8 | 0x000DA630
+1F 9C | 0x5C (92) | 808Low | 0x000BEEC0 | 0x000DA6C0
+1F 9D | 0x5D (93) | 808LowConga | 0x000BEEC8 | 0x000DA750
+1F 9E | 0x5E (94) | 808Mid | 0x000BEED0 | 0x000DA7E0
+1F 9F | 0x5F (95) | 808MidConga | 0x000BEED8 | 0x000DA870
+1F 70 | 0x60 (96) | 808Rimshot | 0x000BEEE0 | 0x000DA900
+1F A2 | 0x62 (98) | 808SnareLow | 0x000BEEF0 | 0x000DAA20
+1F A3 | 0x63 (99) | 80sD4 | 0x000BEEF8 | 0x000DAAB0
+
+Verified examples from this backup:
+1F 83 -> 17 TimpF#1 b (index 0x3F, translation 0x000BEDD8, name record 0x000D9670)
+1F 9C -> 808Low (index 0x5C, translation 0x000BEEC0, name record 0x000DA6C0)
+
+END OF FACTORY SAMPLE NAME LOOKUP
+
+END OF COMBINED SAMPLE NAME LOOKUP
