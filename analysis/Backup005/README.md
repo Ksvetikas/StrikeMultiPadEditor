@@ -6,7 +6,9 @@ SHA-256: `3343cf6d2e730fc8b64ed2aba446075a49c890020a0819662128fabb2fa0845b`
 
 ## Inventory
 
-| Entry type | Count |
+The backup contains 97 directory entries:
+
+| Type | Count |
 |---|---:|
 | KITC | 12 |
 | KITH | 58 |
@@ -14,13 +16,8 @@ SHA-256: `3343cf6d2e730fc8b64ed2aba446075a49c890020a0819662128fabb2fa0845b`
 | SLTH | 4 |
 | INTH | 11 |
 | RIFF | 11 |
-| **Total** | **97** |
 
-There are 1,584 KITI signature matches in kit payloads:
-- 12 KITC entries × 16 matches each
-- 58 KITH entries × 24 matches each
-
-KITI signature: `4B 49 54 49 01 80 00 00` (384-byte structure marker).
+There are 1,584 KITI signature matches in kit payloads: 12 KITC entries × 16 matches and 58 KITH entries × 24 matches.
 
 ## Confirmed observations from this backup
 
@@ -30,6 +27,7 @@ KITI signature: `4B 49 54 49 01 80 00 00` (384-byte structure marker).
 - The first 70 entries have 10,240-byte spans; later entry spans vary.
 - The final next-entry pointer is 18 bytes beyond physical EOF; physical EOF is used as the final inventory boundary.
 - Eleven embedded RIFF/WAVE payloads were extracted using their RIFF-declared lengths.
+- The extracted audio inventory identifies all 11 payloads as PCM, stereo, 44.1 kHz, 16-bit.
 
 ## Sample-reference examples
 
@@ -47,18 +45,17 @@ These are verified examples in this backup, not proof that every reference follo
 - The relationship between embedded RIFF entries and individual kit slots remains to be established.
 - No original backup bytes were modified.
 
-## Next reverse-engineering steps
+## Files in this repository
+
+- [BKF entry inventory](bkf_entry_inventory.csv)
+- [Embedded audio inventory](embedded_audio_inventory.csv)
+
+The full local analysis ZIP also contains the 11 extracted WAV files and a detailed KITI-reference inventory. It is approximately 120 MB and is not included in this repository commit. The 700 KB detailed KITI CSV is also retained in the local analysis ZIP rather than duplicated here.
+
+## Next steps
 
 1. Implement a directory reader based on the `FILEH + 0x10` next-entry pointer.
 2. Resolve all KITI references against WLTH/SLTH metadata and report unresolved/duplicate references.
 3. Establish which KITI regions correspond to actual pad/layer slots.
 4. Map embedded audio entries to sample metadata.
 5. Validate candidate parameter IDs through controlled backup comparisons.
-
-## Companion files
-
-- [BKF entry inventory](bkf_entry_inventory.csv)
-- [KITI reference inventory](kiti_reference_inventory.csv)
-- [Embedded audio inventory](embedded_audio_inventory.csv)
-
-The extracted WAV payloads are not committed here. The complete local analysis ZIP contains those audio files; it is approximately 120 MB.
