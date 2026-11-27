@@ -1,0 +1,12 @@
+entry_index,entry_offset_hex,wav_filename,declared_wav_bytes,audio_format,channels,sample_rate,bits_per_sample
+86,0x?,embedded_entry_86.wav,53978478,1,2,44100,16
+87,0x?,embedded_entry_87.wav,1945018,1,2,44100,16
+88,0x?,embedded_entry_88.wav,1058520,1,2,44100,16
+89,0x?,embedded_entry_89.wav,1058524,1,2,44100,16
+90,0x?,embedded_entry_90.wav,1058524,1,2,44100,16
+91,0x?,embedded_entry_91.wav,2807034,1,2,44100,16
+92,0x?,embedded_entry_92.wav,719870,1,2,44100,16
+93,0x?,embedded_entry_93.wav,1248846,1,2,44100,16
+94,0x?,embedded_entry_94.wav,910382,1,2,44100,16
+95,0x?,embedded_entry_95.wav,43092150,1,2,44100,16
+96,0x?,embedded_entry_96.wav,43098190,1,2,44100,16
