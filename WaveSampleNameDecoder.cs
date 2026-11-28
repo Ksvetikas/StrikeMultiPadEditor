@@ -29,7 +29,35 @@ public static class WaveSampleNameDecoder
     private const int TranslationCount = 100;
     private const int FactoryIndexBase = 0x5000;
 
-    private sealed record NameEntry(string Name, int Offset);
+    private sealed record NameEntry(string Identifier, string Name, int Offset);
+
+    // Direct lookup by the two-byte identifier stored at catalogue +0x02.
+    // These identifiers are unique across the full factory catalogue.
+    public static Dictionary<string, WaveSampleNameMatch> BuildCatalogueLookup(string backupPath)
+    {
+        if (!File.Exists(backupPath))
+            throw new FileNotFoundException("Backup file not found.", backupPath);
+
+        byte[] data = File.ReadAllBytes(backupPath);
+        List<NameEntry> names = ReadFactoryNameTable(data);
+        var lookup = new Dictionary<string, WaveSampleNameMatch>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (NameEntry entry in names)
+        {
+            if (string.IsNullOrWhiteSpace(entry.Identifier) ||
+                lookup.ContainsKey(entry.Identifier))
+                continue;
+
+            lookup.Add(entry.Identifier, new WaveSampleNameMatch
+            {
+                Reference = entry.Identifier,
+                SampleIndex = -1,
+                SampleName = entry.Name,
+                NameRecordOffset = entry.Offset
+            });
+        }
+        return lookup;
+    }
 
     public static Dictionary<string, WaveSampleNameMatch> BuildLookup(string backupPath)
     {
@@ -137,7 +165,11 @@ public static class WaveSampleNameDecoder
             if (length == 0) continue;
 
             string name = Encoding.ASCII.GetString(data, nameStart, length).Trim();
-            if (name.Length > 0) result.Add(new NameEntry(name, offset));
+            if (name.Length > 0)
+            {
+                string identifier = $"{data[offset + 2]:X2} {data[offset + 3]:X2}";
+                result.Add(new NameEntry(identifier, name, offset));
+            }
         }
 
         if (result.Count < 100)
