@@ -16,260 +16,167 @@ public sealed class WaveSampleNameMatch
     public string SecondaryReference { get; init; } = "";
 }
 
-/// <summary>
-/// Resolves the two-byte KITI reference through the backup's factory
-/// translation table and then through wave_list_sort_name.lst.
-///
-/// Verified translation entry layout (8 bytes):
-///   +0..1 secondary reference
-///   +2..3 50xx sample index
-///   +4..5 zero bytes
-///   +6..7 KITI reference
-///
-/// The 50xx low byte selects the big-endian record number in the
-/// wave_list_sort_name.lst table.
-/// </summary>
 public static class WaveSampleNameDecoder
 {
-    private const int TranslationRecordSize = 8;
-    private const int NameRecordSize = 0x90;
+    private const int FileHeaderSize = 0x180;
+    private const int FileLengthOffset = 0x174;
+    private const int TableHeaderSize = 0x20;
+    private const int RecordSize = 0x90;
     private const int NameOffset = 0x10;
     private const int NameCapacity = 0x80;
-    private const int MinimumTranslationRun = 32;
+    private const int TranslationChunk = 8000;
+    private const int TranslationRecordSize = 8;
+    private const int TranslationCount = 100;
+    private const int FactoryIndexBase = 0x5000;
 
-    public static Dictionary<string, WaveSampleNameMatch> BuildLookup(
-        string backupPath)
+    private sealed record NameEntry(string Name, int Offset);
+
+    public static Dictionary<string, WaveSampleNameMatch> BuildLookup(string backupPath)
+    {
+        var all = BuildLookupAll(backupPath);
+        var result = new Dictionary<string, WaveSampleNameMatch>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in all)
+            if (pair.Value.Count > 0)
+                result[pair.Key] = pair.Value[0];
+        return result;
+    }
+
+    public static Dictionary<string, List<WaveSampleNameMatch>> BuildLookupAll(string backupPath)
     {
         if (!File.Exists(backupPath))
             throw new FileNotFoundException("Backup file not found.", backupPath);
 
         byte[] data = File.ReadAllBytes(backupPath);
-        Dictionary<int, (string Name, int Offset)> names =
-            ReadFactoryNameTable(data);
+        List<NameEntry> names = ReadFactoryNameTable(data);
+        (int wavePayload, int waveLength) = FindEmbeddedFile(data, "Wave_list.lst");
 
-        int tableStart = FindTranslationTable(data);
-        var lookup = new Dictionary<string, WaveSampleNameMatch>(
-            StringComparer.OrdinalIgnoreCase);
+        int tableStart = checked(wavePayload + TableHeaderSize + TranslationChunk * TranslationRecordSize);
+        int tableEnd = checked(tableStart + TranslationCount * TranslationRecordSize);
+        if (tableEnd > wavePayload + waveLength)
+            throw new InvalidDataException("The Wave_list.lst translation block is outside its payload.");
 
-        for (int offset = tableStart;
-             offset + TranslationRecordSize <= data.Length;
-             offset += TranslationRecordSize)
+        var lookup = new Dictionary<string, List<WaveSampleNameMatch>>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < TranslationCount; i++)
         {
-            if (!IsTranslationRecord(data, offset))
-                break;
-
-            int sampleIndex = data[offset + 3];
-            string reference =
-                $"{data[offset + 6]:X2} {data[offset + 7]:X2}";
-
-            if (!names.TryGetValue(sampleIndex, out var nameEntry))
+            int offset = tableStart + i * TranslationRecordSize;
+            int encodedIndex = ReadUInt16BE(data, offset + 2);
+            if (encodedIndex < FactoryIndexBase ||
+                encodedIndex >= FactoryIndexBase + TranslationCount ||
+                data[offset + 4] != 0 || data[offset + 5] != 0)
                 continue;
 
-            lookup.TryAdd(reference, new WaveSampleNameMatch
+            int sampleIndex = encodedIndex - FactoryIndexBase;
+            if (sampleIndex >= names.Count)
+                continue;
+
+            string reference = $"{data[offset + 6]:X2} {data[offset + 7]:X2}";
+            var match = new WaveSampleNameMatch
             {
                 Reference = reference,
                 SampleIndex = sampleIndex,
-                SampleName = nameEntry.Name,
+                SampleName = names[sampleIndex].Name,
                 TranslationOffset = offset,
-                NameRecordOffset = nameEntry.Offset,
-                SecondaryReference =
-                    $"{data[offset]:X2} {data[offset + 1]:X2}"
-            });
+                NameRecordOffset = names[sampleIndex].Offset,
+                SecondaryReference = $"{data[offset]:X2} {data[offset + 1]:X2}"
+            };
+            if (!lookup.TryGetValue(reference, out var matches))
+            {
+                matches = new List<WaveSampleNameMatch>();
+                lookup.Add(reference, matches);
+            }
+            matches.Add(match);
         }
-
         return lookup;
     }
 
     public static string Scan(string backupPath)
     {
-        Dictionary<string, WaveSampleNameMatch> lookup =
-            BuildLookup(backupPath);
-
+        var all = BuildLookupAll(backupPath);
         var output = new StringBuilder();
         output.AppendLine("STRIKE MULTIPAD KITI REFERENCE -> FACTORY SAMPLE NAME");
         output.AppendLine($"Backup: {Path.GetFileName(backupPath)}");
-        output.AppendLine("Lookup chain:");
-        output.AppendLine("KITI reference -> 8-byte translation entry -> 50xx index -> wave_list_sort_name.lst record");
-        output.AppendLine();
-        output.AppendLine($"Decoded translation entries with names: {lookup.Count}");
+        output.AppendLine("Lookup: Wave_list.lst translation rows 8000-8099 -> factory catalogue positions 0-99");
+        output.AppendLine($"Distinct KITI references: {all.Count}");
+        output.AppendLine($"Translation rows: {all.Values.Sum(x => x.Count)}");
+        output.AppendLine($"References with multiple translation rows: {all.Count(x => x.Value.Count > 1)}");
         output.AppendLine();
         output.AppendLine("KITI REF | SAMPLE INDEX | FACTORY SAMPLE NAME | TRANSLATION OFFSET | NAME RECORD OFFSET");
-        output.AppendLine("------------------------------------------------------------------------------------------");
-
-        foreach (WaveSampleNameMatch match in lookup.Values
-                     .OrderBy(x => x.SampleIndex))
-        {
-            output.AppendLine(
-                $"{match.Reference} | 0x{match.SampleIndex:X2} ({match.SampleIndex}) | " +
-                $"{match.SampleName} | 0x{match.TranslationOffset:X8} | " +
-                $"0x{match.NameRecordOffset:X8}");
-        }
-
-        output.AppendLine();
-        output.AppendLine("Verified examples from this backup:");
-        AddExample(output, lookup, "1F 83");
-        AddExample(output, lookup, "1F 9C");
+        foreach (var pair in all.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
+            foreach (WaveSampleNameMatch match in pair.Value)
+                output.AppendLine($"{match.Reference} | 0x{match.SampleIndex:X2} ({match.SampleIndex}) | {match.SampleName} | 0x{match.TranslationOffset:X8} | 0x{match.NameRecordOffset:X8}");
         output.AppendLine();
         output.AppendLine("END OF FACTORY SAMPLE NAME LOOKUP");
         return output.ToString();
     }
 
-    private static void AddExample(
-        StringBuilder output,
-        Dictionary<string, WaveSampleNameMatch> lookup,
-        string reference)
+    private static List<NameEntry> ReadFactoryNameTable(byte[] data)
     {
-        if (lookup.TryGetValue(reference, out WaveSampleNameMatch? match))
+        (int payloadStart, int payloadLength) = FindEmbeddedFile(data, "wave_list_sort_name.lst");
+        if (payloadLength < TableHeaderSize)
+            throw new InvalidDataException("The factory sample-name table is too short.");
+
+        int recordsStart = payloadStart + TableHeaderSize;
+        int recordCount = (payloadLength - TableHeaderSize) / RecordSize;
+        var result = new List<NameEntry>(recordCount);
+
+        for (int i = 0; i < recordCount; i++)
         {
-            output.AppendLine(
-                $"{reference} -> {match.SampleName} " +
-                $"(index 0x{match.SampleIndex:X2}, " +
-                $"translation 0x{match.TranslationOffset:X8}, " +
-                $"name record 0x{match.NameRecordOffset:X8})");
-        }
-        else
-        {
-            output.AppendLine($"{reference} -> no mapping in translation table");
-        }
-    }
-
-    private static Dictionary<int, (string Name, int Offset)> ReadFactoryNameTable(
-        byte[] data)
-    {
-        int fileNamePosition = FindBytes(
-            data, Encoding.ASCII.GetBytes("wave_list_sort_name.lst"));
-
-        if (fileNamePosition < 0)
-            throw new InvalidDataException(
-                "wave_list_sort_name.lst was not found in the backup.");
-
-        int headerPosition = FindBytes(
-            data, Encoding.ASCII.GetBytes("SLTH"), fileNamePosition);
-
-        if (headerPosition < 0 ||
-            headerPosition + 0x20 > data.Length)
-        {
-            throw new InvalidDataException(
-                "The sample-name table header (SLTH) was not found.");
-        }
-
-        int count = data[headerPosition + 8] |
-                    (data[headerPosition + 9] << 8);
-        int recordsStart = headerPosition + 0x20;
-
-        if (count <= 0 || count > 10000 ||
-            recordsStart + (long)count * NameRecordSize > data.Length)
-        {
-            throw new InvalidDataException(
-                $"Invalid factory sample-name table size: {count} entries.");
-        }
-
-        var result = new Dictionary<int, (string Name, int Offset)>();
-
-        for (int i = 0; i < count; i++)
-        {
-            int offset = recordsStart + i * NameRecordSize;
-            int recordNumber = (data[offset] << 8) | data[offset + 1];
+            int offset = recordsStart + i * RecordSize;
+            int declaredLength = ReadUInt16BE(data, offset + 4);
+            if (data[offset] != 0 || declaredLength > NameCapacity)
+                continue;
 
             int nameStart = offset + NameOffset;
-            int end = nameStart;
-            int limit = Math.Min(data.Length, nameStart + NameCapacity);
+            int length = 0;
+            while (length < NameCapacity && data[nameStart + length] != 0)
+            {
+                byte value = data[nameStart + length];
+                if (value < 32 || value > 126) break;
+                length++;
+            }
+            if (length == 0) continue;
 
-            while (end < limit && data[end] != 0)
-                end++;
-
-            string name = Encoding.ASCII.GetString(
-                data, nameStart, end - nameStart).Trim();
-
-            if (!string.IsNullOrWhiteSpace(name))
-                result[recordNumber] = (name, offset);
+            string name = Encoding.ASCII.GetString(data, nameStart, length).Trim();
+            if (name.Length > 0) result.Add(new NameEntry(name, offset));
         }
 
+        if (result.Count < 100)
+            throw new InvalidDataException($"Only {result.Count} factory names were decoded; expected at least 100.");
         return result;
     }
 
-    private static int FindTranslationTable(byte[] data)
+    private static (int PayloadStart, int PayloadLength) FindEmbeddedFile(byte[] data, string fileName)
     {
-        int bestStart = -1;
-        int bestCount = 0;
+        int namePosition = FindBytes(data, Encoding.ASCII.GetBytes(fileName));
+        if (namePosition < 0) throw new InvalidDataException($"{fileName} was not found in the backup.");
 
-        // The translation list begins with index 0 encoded as 50 00.
-        // Require a long consecutive run of 8-byte records to avoid
-        // mistaking unrelated 50xx values elsewhere in the backup.
-        for (int start = 0; start <= data.Length - TranslationRecordSize; start++)
-        {
-            if (data[start + 2] != 0x50 ||
-                data[start + 3] != 0x00 ||
-                data[start + 4] != 0x00 ||
-                data[start + 5] != 0x00)
-            {
-                continue;
-            }
+        int headerPosition = namePosition - 0xE0;
+        if (headerPosition < 0 || !Matches(data, headerPosition, Encoding.ASCII.GetBytes("FILEH")))
+            throw new InvalidDataException($"The FILEH header for {fileName} was not found.");
 
-            int count = 0;
-            int expectedIndex = 0;
-            int offset = start;
-
-            while (offset + TranslationRecordSize <= data.Length &&
-                   IsTranslationRecord(data, offset) &&
-                   data[offset + 3] == (byte)expectedIndex)
-            {
-                count++;
-                expectedIndex++;
-                offset += TranslationRecordSize;
-
-                if (expectedIndex > 255)
-                    break;
-            }
-
-            if (count > bestCount)
-            {
-                bestCount = count;
-                bestStart = start;
-            }
-        }
-
-        if (bestStart < 0 || bestCount < MinimumTranslationRun)
-        {
-            throw new InvalidDataException(
-                "The KITI-to-50xx sample translation table could not be identified.");
-        }
-
-        return bestStart;
+        int payloadLength = ReadUInt32LE(data, headerPosition + FileLengthOffset);
+        int payloadStart = checked(headerPosition + FileHeaderSize);
+        if (payloadLength <= 0 || payloadStart + (long)payloadLength > data.Length)
+            throw new InvalidDataException($"The payload bounds for {fileName} are invalid.");
+        return (payloadStart, payloadLength);
     }
 
-    private static bool IsTranslationRecord(byte[] data, int offset)
+    private static int ReadUInt16BE(byte[] d, int o) => (d[o] << 8) | d[o + 1];
+    private static int ReadUInt32LE(byte[] d, int o) =>
+        d[o] | (d[o + 1] << 8) | (d[o + 2] << 16) | (d[o + 3] << 24);
+
+    private static bool Matches(byte[] data, int offset, byte[] pattern)
     {
-        return offset >= 0 &&
-               offset + TranslationRecordSize <= data.Length &&
-               data[offset + 2] == 0x50 &&
-               data[offset + 4] == 0x00 &&
-               data[offset + 5] == 0x00;
+        if (offset < 0 || offset + pattern.Length > data.Length) return false;
+        for (int i = 0; i < pattern.Length; i++)
+            if (data[offset + i] != pattern[i]) return false;
+        return true;
     }
 
-    private static int FindBytes(
-        byte[] data,
-        byte[] pattern,
-        int start = 0)
+    private static int FindBytes(byte[] data, byte[] pattern)
     {
-        for (int i = Math.Max(0, start);
-             i <= data.Length - pattern.Length;
-             i++)
-        {
-            bool found = true;
-            for (int j = 0; j < pattern.Length; j++)
-            {
-                if (data[i + j] != pattern[j])
-                {
-                    found = false;
-                    break;
-                }
-            }
-
-            if (found)
-                return i;
-        }
-
+        for (int i = 0; i <= data.Length - pattern.Length; i++)
+            if (Matches(data, i, pattern)) return i;
         return -1;
     }
 }
