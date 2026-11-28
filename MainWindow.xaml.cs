@@ -22,7 +22,7 @@ public partial class MainWindow : Window
     private readonly ICollectionView _kitView;
     private string? _currentBackupPath;
     private Dictionary<string, LayerSampleNameMatch> _sampleNameLookup = new(StringComparer.OrdinalIgnoreCase);
-    private Dictionary<string, WaveSampleNameMatch> _factorySampleNameLookup = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, WaveSampleNameMatch> _catalogueSampleNameLookup = new(StringComparer.OrdinalIgnoreCase);\n    private Dictionary<string, WaveSampleNameMatch> _factorySampleNameLookup = new(StringComparer.OrdinalIgnoreCase);
 
     public MainWindow()
     {
@@ -85,7 +85,7 @@ public partial class MainWindow : Window
                 BackupKitExtractor.ReadKits(dialog.FileName);
 
             _sampleNameLookup = LayerSampleNameResolver.BuildLookup(dialog.FileName);
-            _factorySampleNameLookup = WaveSampleNameDecoder.BuildLookup(dialog.FileName);
+            _catalogueSampleNameLookup = WaveSampleNameDecoder.BuildCatalogueLookup(dialog.FileName);\n            _factorySampleNameLookup = WaveSampleNameDecoder.BuildLookup(dialog.FileName);
 
             _kits.Clear();
             _candidateLayers.Clear();
@@ -157,6 +157,13 @@ public partial class MainWindow : Window
                 // found in the kit's assigned layer blocks.
                 layer.SampleName = match.SampleName;
                 layer.SampleNameSource = "Layer metadata";
+            }
+            else if (_catalogueSampleNameLookup.TryGetValue(
+                         layer.SampleReference,
+                         out WaveSampleNameMatch? catalogueMatch))
+            {
+                layer.SampleName = catalogueMatch.SampleName;
+                layer.SampleNameSource = "Full factory catalogue";
             }
             else if (_factorySampleNameLookup.TryGetValue(
                          layer.SampleReference,
