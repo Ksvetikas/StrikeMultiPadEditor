@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,204 +8,136 @@ namespace StrikeMultiPadEditor;
 
 public sealed class FactorySampleName
 {
-    public int RecordNumber { get; init; }
+    public int RecordNumber { get; init; } // zero-based catalogue position
+    public int SequenceByte { get; init; } // wraps every 256 records
     public string Identifier { get; init; } = "";
+    public int NameLength { get; init; }
     public string SampleName { get; init; } = "";
     public int RecordOffset { get; init; }
 }
 
 public static class FactorySampleNameTableScanner
 {
+    private const int FileHeaderSize = 0x180;
+    private const int FileLengthOffset = 0x174;
+    private const int TableHeaderSize = 0x20;
     private const int RecordSize = 0x90;
-    private const int RecordDataOffset = 0x20;
     private const int NameOffset = 0x10;
     private const int NameCapacity = 0x80;
 
     private static readonly string[] KnownReferences =
     [
-        "1A D1", "1A CD", "19 34", "1B E0",
-        "1B DE", "1B E2", "01 F4", "01 BF",
-        "03 73", "03 74", "01 B3"
+        "1A D1", "1A CD", "19 34", "1B E0", "1B DE", "1B E2",
+        "01 F4", "01 BF", "03 73", "03 74", "01 B3"
     ];
 
     public static string Scan(string backupPath)
     {
         if (!File.Exists(backupPath))
-            throw new FileNotFoundException(
-                "Backup file not found.", backupPath);
+            throw new FileNotFoundException("Backup file not found.", backupPath);
 
         byte[] data = File.ReadAllBytes(backupPath);
+        (int payloadStart, int payloadLength) = FindEmbeddedFile(data, "wave_list_sort_name.lst");
+        if (payloadLength < TableHeaderSize)
+            throw new InvalidDataException("The sample-name table payload is too short.");
 
-        int namePosition = FindBytes(
-            data,
-            Encoding.ASCII.GetBytes("wave_list_sort_name.lst"));
+        int declaredCount = data[payloadStart + 8] | (data[payloadStart + 9] << 8);
+        int recordsStart = payloadStart + TableHeaderSize;
+        int slotCount = (payloadLength - TableHeaderSize) / RecordSize;
+        var entries = new List<FactorySampleName>(slotCount);
 
-        if (namePosition < 0)
-            throw new InvalidDataException(
-                "wave_list_sort_name.lst was not found.");
-
-        int headerPosition = FindBytes(
-            data,
-            Encoding.ASCII.GetBytes("SLTH"),
-            namePosition);
-
-        if (headerPosition < 0 ||
-            headerPosition + RecordDataOffset > data.Length)
-        {
-            throw new InvalidDataException(
-                "The sample-name table header was not found.");
-        }
-
-        int count = data[headerPosition + 8] |
-                    (data[headerPosition + 9] << 8);
-
-        int recordsStart = headerPosition + RecordDataOffset;
-
-        if (count <= 0 || count > 10000 ||
-            recordsStart + (long)count * RecordSize > data.Length)
-        {
-            throw new InvalidDataException(
-                $"Invalid sample table size. Entry count: {count}.");
-        }
-
-        var entries = new List<FactorySampleName>();
-
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < slotCount; i++)
         {
             int offset = recordsStart + i * RecordSize;
+            int nameLength = (data[offset + 4] << 8) | data[offset + 5];
+            if (data[offset] != 0 || nameLength > NameCapacity) continue;
 
-            int recordNumber =
-                (data[offset] << 8) | data[offset + 1];
+            int nameStart = offset + NameOffset;
+            int actualLength = 0;
+            while (actualLength < NameCapacity && data[nameStart + actualLength] != 0)
+            {
+                byte value = data[nameStart + actualLength];
+                if (value < 32 || value > 126) break;
+                actualLength++;
+            }
+            if (actualLength == 0) continue;
 
-            string identifier =
-                $"{data[offset + 2]:X2} {data[offset + 3]:X2}";
-
-            string sampleName = ReadName(data, offset);
-
-            if (string.IsNullOrWhiteSpace(sampleName))
-                continue;
+            string name = Encoding.ASCII.GetString(data, nameStart, actualLength).Trim();
+            if (name.Length == 0) continue;
 
             entries.Add(new FactorySampleName
             {
-                RecordNumber = recordNumber,
-                Identifier = identifier,
-                SampleName = sampleName,
+                RecordNumber = i,
+                SequenceByte = data[offset + 1],
+                Identifier = $"{data[offset + 2]:X2} {data[offset + 3]:X2}",
+                NameLength = nameLength,
+                SampleName = name,
                 RecordOffset = offset
             });
         }
 
         var output = new StringBuilder();
-
         output.AppendLine("STRIKE MULTIPAD FACTORY SAMPLE NAME TABLE");
-        output.AppendLine($"Backup: {backupPath}");
-        output.AppendLine($"Declared entries: {count}");
-        output.AppendLine($"Decoded entries: {entries.Count}");
-        output.AppendLine($"Record size: 0x{RecordSize:X}");
+        output.AppendLine($"Backup: {Path.GetFileName(backupPath)}");
+        output.AppendLine($"Header declared count: {declaredCount}");
+        output.AppendLine($"Catalogue slots in payload: {slotCount}");
+        output.AppendLine($"Decoded named records: {entries.Count}");
+        output.AppendLine("Identifier is the big-endian two-byte field at record +0x02.");
+        output.AppendLine("Sequence byte at +0x01 wraps; it is not a unique record number.");
         output.AppendLine();
-        output.AppendLine(
-            "RECORD | IDENTIFIER | SAMPLE NAME | BACKUP OFFSET");
-        output.AppendLine(
-            "--------------------------------------------------------------");
-
-        foreach (var entry in entries)
-        {
-            output.AppendLine(
-                $"{entry.RecordNumber,6} | " +
-                $"{entry.Identifier} | " +
-                $"{entry.SampleName} | " +
-                $"0x{entry.RecordOffset:X8}");
-        }
+        output.AppendLine("POSITION | SEQ | IDENTIFIER | LENGTH | SAMPLE NAME | BACKUP OFFSET");
+        foreach (FactorySampleName entry in entries)
+            output.AppendLine($"{entry.RecordNumber,8} | {entry.SequenceByte,3} | {entry.Identifier} | {entry.NameLength,6} | {entry.SampleName} | 0x{entry.RecordOffset:X8}");
 
         output.AppendLine();
         output.AppendLine("KNOWN LAYER REFERENCE LOOKUP");
-        output.AppendLine("----------------------------");
-
         foreach (string reference in KnownReferences)
         {
-            var matches = entries
-                .Where(x =>
-                    string.Equals(
-                        x.Identifier,
-                        reference,
-                        StringComparison.OrdinalIgnoreCase))
+            List<FactorySampleName> matches = entries
+                .Where(x => string.Equals(x.Identifier, reference, StringComparison.OrdinalIgnoreCase))
                 .ToList();
-
-            var reversed = string.Join(
-                " ",
-                reference.Split(' ').Reverse());
-
-            matches.AddRange(entries.Where(x =>
-                string.Equals(
-                    x.Identifier,
-                    reversed,
-                    StringComparison.OrdinalIgnoreCase)));
-
-            matches = matches
-                .DistinctBy(x => x.RecordOffset)
-                .ToList();
-
             if (matches.Count == 0)
-            {
-                output.AppendLine(
-                    $"{reference} | NO MATCH IN SAMPLE NAME TABLE");
-            }
+                output.AppendLine($"{reference} | NO MATCH IN SAMPLE NAME CATALOGUE");
             else
-            {
-                foreach (var match in matches)
-                {
-                    output.AppendLine(
-                        $"{reference} | {match.Identifier} | " +
-                        $"{match.SampleName}");
-                }
-            }
+                foreach (FactorySampleName match in matches)
+                    output.AppendLine($"{reference} | position {match.RecordNumber} | {match.SampleName}");
         }
-
         output.AppendLine();
         output.AppendLine("END OF SAMPLE NAME TABLE");
-
         return output.ToString();
     }
 
-    private static int FindBytes(
-        byte[] data,
-        byte[] pattern,
-        int start = 0)
+    private static (int PayloadStart, int PayloadLength) FindEmbeddedFile(byte[] data, string fileName)
     {
-        for (int i = Math.Max(0, start);
-             i <= data.Length - pattern.Length;
-             i++)
-        {
-            bool found = true;
+        int namePosition = FindBytes(data, Encoding.ASCII.GetBytes(fileName));
+        if (namePosition < 0) throw new InvalidDataException($"{fileName} was not found in the backup.");
 
-            for (int j = 0; j < pattern.Length; j++)
-            {
-                if (data[i + j] != pattern[j])
-                {
-                    found = false;
-                    break;
-                }
-            }
+        int headerPosition = namePosition - 0xE0;
+        if (headerPosition < 0 || !Matches(data, headerPosition, Encoding.ASCII.GetBytes("FILEH")))
+            throw new InvalidDataException($"The FILEH header for {fileName} was not found.");
 
-            if (found)
-                return i;
-        }
-
-        return -1;
+        int payloadLength = ReadUInt32LE(data, headerPosition + FileLengthOffset);
+        int payloadStart = checked(headerPosition + FileHeaderSize);
+        if (payloadLength <= 0 || payloadStart + (long)payloadLength > data.Length)
+            throw new InvalidDataException($"The payload bounds for {fileName} are invalid.");
+        return (payloadStart, payloadLength);
     }
 
-    private static string ReadName(byte[] data, int recordOffset)
+    private static int ReadUInt32LE(byte[] d, int o) =>
+        d[o] | (d[o + 1] << 8) | (d[o + 2] << 16) | (d[o + 3] << 24);
+
+    private static bool Matches(byte[] data, int offset, byte[] pattern)
     {
-        int start = recordOffset + NameOffset;
-        int length = Math.Min(
-            NameCapacity,
-            data.Length - start);
+        if (offset < 0 || offset + pattern.Length > data.Length) return false;
+        for (int i = 0; i < pattern.Length; i++)
+            if (data[offset + i] != pattern[i]) return false;
+        return true;
+    }
 
-        int end = start;
-
-        while (end < start + length && data[end] != 0)
-            end++;
-
-        return Encoding.ASCII.GetString(
-            data, start, end - start).Trim();
+    private static int FindBytes(byte[] data, byte[] pattern)
+    {
+        for (int i = 0; i <= data.Length - pattern.Length; i++)
+            if (Matches(data, i, pattern)) return i;
+        return -1;
     }
 }
